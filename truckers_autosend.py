@@ -129,11 +129,13 @@ def _auto_update(show_status=True):
 
 def _start_update_thread():
     """Lance la vérification de mise à jour en arrière-plan."""
-    try:
-        t = threading.Thread(target=_auto_update, daemon=True)
-        t.start()
-    except Exception:
-        pass
+    # Désactivé temporairement pour éviter les problèmes de chemin
+    pass
+    # try:
+    #     t = threading.Thread(target=_auto_update, daemon=True)
+    #     t.start()
+    # except Exception:
+    #     pass
 
 
 def cb_check_updates(sender, app_data):
