@@ -20,11 +20,11 @@ VERSION = "1.0.0"
 
 # URL brut où se trouve la dernière version du script.
 # Exemple : "https://raw.githubusercontent.com/<user>/<repo>/main/truckers_autosend.py"
-UPDATE_URL = ""
+UPDATE_URL = "https://raw.githubusercontent.com/Atlas-dev-py/AutoSend/refs/heads/main/truckers_autosend.py"
 
 # URL d'un fichier JSON contenant les infos de version et changelog.
 # Exemple : "https://raw.githubusercontent.com/<user>/<repo>/main/version.json"
-VERSION_INFO_URL = ""
+VERSION_INFO_URL = "https://raw.githubusercontent.com/Atlas-dev-py/AutoSendVersion/refs/heads/main/version.json"
 
 
 try:
@@ -104,27 +104,18 @@ def _auto_update(show_status=True):
                 queue_status("Échec du téléchargement de la mise à jour.", (220, 120, 120, 255))
             return
 
-        # Sauvegarde
         local_path = os.path.abspath(__file__)
-        bak = local_path + ".bak"
-        try:
-            shutil.copy2(local_path, bak)
-        except Exception:
-            pass
 
         # Appliquer la mise à jour
         with open(local_path, "w", encoding="utf-8") as f:
             f.write(remote_script)
 
         # Afficher le changelog si disponible
-        if changelog and show_status:
-            add_log(f"Mise à jour {VERSION} → {latest_version} appliquée.", (160, 230, 180, 255))
-            add_log(f"Changelog : {changelog}", (200, 220, 255, 255))
+        if show_status:
+            if changelog:
+                add_log(f"Mise à jour {VERSION} → {latest_version} appliquée.", (160, 230, 180, 255))
+                add_log(f"Changelog : {changelog}", (200, 220, 255, 255))
             queue_status("Mise à jour appliquée, redémarrage…", (160, 230, 180, 255))
-            _send_notification("Atlas AutoSend", f"Mise à jour {latest_version} installée !\n{changelog}", 10)
-        else:
-            queue_status("Mise à jour appliquée, redémarrage…", (160, 230, 180, 255))
-            _send_notification("Atlas AutoSend", f"Mise à jour {latest_version} installée !", 10)
 
         # Redémarrer
         time.sleep(1)  # Petit délai pour que l'utilisateur voie le message
@@ -176,7 +167,6 @@ def _check_updates_interactive():
         dpg.set_value("update_changelog_text", changelog or "Aucun changelog fourni.")
         dpg.configure_item("modal_update", show=True)
         queue_status("Mise à jour disponible !", (255, 200, 100, 255))
-        _send_notification("Atlas AutoSend", f"Nouvelle version {latest_version} disponible !", 10)
 
     except Exception:
         queue_status("Échec de la vérification.", (220, 120, 120, 255))
@@ -543,9 +533,6 @@ _theme_objs    = {}   # cache des objets thème DPG
 g_pending_status = None
 g_pending_color = None
 
-# Flag pour rollback automatique
-UPDATE_FAILED_FLAG = os.path.join(os.path.dirname(__file__), "update_failed.flag")
-
 def add_log(msg, color=(180, 220, 180, 255)):
     ts = datetime.now().strftime("%H:%M:%S")
     line = f"[{ts}]  {msg}"
@@ -563,24 +550,12 @@ def set_status(msg, color=(140, 140, 160, 255)):
         dpg.configure_item("status_text", color=color)
 
 
-def _check_rollback():
-    """Vérifie si une mise à jour a échoué et effectue un rollback automatique."""
-    if not os.path.exists(UPDATE_FAILED_FLAG):
-        return False
-    try:
-        # Supprimer le flag
-        os.remove(UPDATE_FAILED_FLAG)
-        # Rollback
-        local_path = os.path.abspath(__file__)
-        bak = local_path + ".bak"
-        if os.path.exists(bak):
-            shutil.copy2(bak, local_path)
-            add_log("Rollback automatique effectué après échec de mise à jour.", (255, 150, 150, 255))
-            _send_notification("Atlas AutoSend", "Mise à jour échouée, rollback effectué.", 10)
-            return True
-    except Exception:
-        pass
-    return False
+def queue_status(msg, color=(140, 140, 160, 255)):
+    """Enfile un statut pour l'appliquer depuis la boucle principale (thread-safe)."""
+    global g_pending_status, g_pending_color
+    g_pending_status = msg
+    g_pending_color = color
+
 
 # ─────────────────────────────────────────────
 #  WORKER
@@ -1410,17 +1385,6 @@ def _show_welcome_animation(duration=1.2):
 
 def main():
     global g_hotkey_start, g_hotkey_stop, g_current_theme, g_quick_hotkeys
-    # Vérifier rollback avant tout
-    if _check_rollback():
-        # Si rollback, ne pas lancer la vérification auto
-        pass
-    else:
-        # Créer le flag de succès (sera supprimé si tout va bien)
-        try:
-            with open(UPDATE_FAILED_FLAG, "w") as f:
-                f.write("update_started")
-        except Exception:
-            pass
 
     dpg.create_context()
     dpg.create_viewport(title="Atlas AutoSend TMP",
@@ -1466,15 +1430,7 @@ def main():
 
     # Animer + vérifier mise à jour en arrière-plan
     _show_welcome_animation(duration=1.2)
-    if not _check_rollback():  # Ne pas vérifier si rollback vient d'être fait
-        _start_update_thread()
-
-    # Supprimer le flag de succès
-    try:
-        if os.path.exists(UPDATE_FAILED_FLAG):
-            os.remove(UPDATE_FAILED_FLAG)
-    except Exception:
-        pass
+    _start_update_thread()
 
     while dpg.is_dearpygui_running():
         now = time.time()
