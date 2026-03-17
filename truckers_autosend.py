@@ -16,7 +16,7 @@ import urllib.request
 from datetime import datetime
 
 # Version actuelle du logiciel (mettez à jour manuellement)
-VERSION = "1.2.3"
+VERSION = "1.2.4"
 
 # URL brut où se trouve la dernière version du script.
 # Exemple : "https://raw.githubusercontent.com/<user>/<repo>/main/truckers_autosend.py"
@@ -144,8 +144,9 @@ def _auto_update(show_status=True):
         local_path = os.path.abspath(__file__)
 
         # Appliquer la mise à jour
-        with open(local_path, "w", encoding="utf-8") as f:
-            f.write(remote_script)
+        if os.path.exists("updating.flag"):
+            os.remove("updating.flag")
+        add_log("Redémarrage après MAJ détecté – on continue normalement.", (160, 230, 180, 255))
 
         # Afficher le changelog si disponible
         if show_status:
