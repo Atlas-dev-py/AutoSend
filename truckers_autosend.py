@@ -79,7 +79,7 @@ def _fetch_version_info():
 def _parse_script_version(script_text: str) -> str | None:
     """Extrait la valeur de VERSION = "x.y.z" du script.
 
-    Retourne une chaîne comme '1.2.0' ou None si introuvable.
+    Retourne une chaîne comme '1.2.1' ou None si introuvable.
     """
     for line in script_text.splitlines():
         line = line.strip()
