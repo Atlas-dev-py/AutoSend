@@ -16,7 +16,7 @@ import urllib.request
 from datetime import datetime
 
 # Version actuelle du logiciel (mettez à jour manuellement)
-VERSION = "1.0.0"
+VERSION = "1.2.1"
 
 # URL brut où se trouve la dernière version du script.
 # Exemple : "https://raw.githubusercontent.com/<user>/<repo>/main/truckers_autosend.py"
@@ -76,6 +76,23 @@ def _fetch_version_info():
         return None
 
 
+def _parse_script_version(script_text: str) -> str | None:
+    """Extrait la valeur de VERSION = "x.y.z" du script.
+
+    Retourne une chaîne comme '1.2.0' ou None si introuvable.
+    """
+    for line in script_text.splitlines():
+        line = line.strip()
+        if line.startswith("VERSION") and "=" in line:
+            parts = line.split("=", 1)
+            if len(parts) != 2:
+                continue
+            val = parts[1].strip().strip('"\'')
+            if val:
+                return val
+    return None
+
+
 def _auto_update(show_status=True):
     """Vérifie la version et applique la mise à jour si nécessaire."""
     try:
@@ -102,6 +119,14 @@ def _auto_update(show_status=True):
         if not remote_script:
             if show_status:
                 queue_status("Échec du téléchargement de la mise à jour.", (220, 120, 120, 255))
+            return
+
+        remote_script_version = _parse_script_version(remote_script)
+        if remote_script_version and remote_script_version != latest_version:
+            # Si le script distant ne correspond pas à la version annoncée, on ne l'applique pas.
+            if show_status:
+                queue_status("La version du script distant ne correspond pas à la version annoncée.", (220, 120, 120, 255))
+                add_log(f"Version attendue : {latest_version}, version trouvée : {remote_script_version}", (220, 220, 150, 255))
             return
 
         # Corriger localement les versions distantes qui utilisent os.execv() de façon instable
@@ -1266,14 +1291,11 @@ def build_ui():
                     dpg.add_button(label="  Arrêter",  tag="btn_stop",  width=120, height=36,
                                    callback=cb_stop, enabled=False)
                     dpg.add_spacer(width=8)
-                    dpg.add_button(label="  Sauvegarder (partage)", width=180, height=36,
-                                   callback=cb_save)
-                    dpg.add_spacer(width=4)
-                    dpg.add_button(label="  Sauvegarder (local)", width=160, height=36,
+                    dpg.add_button(label="  Sauvegarder", width=180, height=36,
                                    callback=cb_save_local)
 
                 dpg.add_spacer(height=4)
-                dpg.add_text("  ↑ Partage : exclut ton chemin ETS2   |   Local : sauvegarde tout",
+                dpg.add_text("  Sauvegarde locale (tout le contenu).",
                              color=(108, 115, 149, 255))
                 dpg.add_spacer(height=8)
 
