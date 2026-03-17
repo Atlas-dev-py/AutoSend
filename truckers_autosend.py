@@ -16,7 +16,7 @@ import urllib.request
 from datetime import datetime
 
 # Version actuelle du logiciel (mettez à jour manuellement)
-VERSION = "1.2.5"
+VERSION = "1.2.6"
 
 # URL brut où se trouve la dernière version du script.
 # Exemple : "https://raw.githubusercontent.com/<user>/<repo>/main/truckers_autosend.py"
