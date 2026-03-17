@@ -16,7 +16,7 @@ import urllib.request
 from datetime import datetime
 
 # Version actuelle du logiciel (mettez à jour manuellement)
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 
 # URL brut où se trouve la dernière version du script.
 # Exemple : "https://raw.githubusercontent.com/<user>/<repo>/main/truckers_autosend.py"
@@ -77,19 +77,21 @@ def _fetch_version_info():
 
 
 def _parse_script_version(script_text: str) -> str | None:
-    """Extrait la valeur de VERSION = "x.y.z" du script.
-
-    Retourne une chaîne comme '1.2.1' ou None si introuvable.
-    """
+    import re
+    # Recherche plus souple
+    match = re.search(r'VERSION\s*=\s*["\']?([^"\']+)["\']?', script_text, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    
+    # Ancienne méthode en secours
     for line in script_text.splitlines():
         line = line.strip()
         if line.startswith("VERSION") and "=" in line:
             parts = line.split("=", 1)
-            if len(parts) != 2:
-                continue
-            val = parts[1].strip().strip('"\'')
-            if val:
-                return val
+            if len(parts) == 2:
+                val = parts[1].strip().strip('"\'')
+                if val:
+                    return val
     return None
 
 
