@@ -104,6 +104,16 @@ def _auto_update(show_status=True):
                 queue_status("Échec du téléchargement de la mise à jour.", (220, 120, 120, 255))
             return
 
+        # Corriger localement les versions distantes qui utilisent os.execv() de façon instable
+        remote_script = remote_script.replace(
+            "        os.execv(sys.executable, [sys.executable] + sys.argv)\n",
+            "        # Redémarrer de manière fiable (utilise le python du venv si présent)\n"
+            "        venv_python = os.path.join(os.path.dirname(__file__), '.venv', 'Scripts', 'python.exe')\n"
+            "        python_exec = venv_python if os.path.isfile(venv_python) else sys.executable\n"
+            "        subprocess.Popen([python_exec, os.path.abspath(__file__)], cwd=os.path.dirname(os.path.abspath(__file__)))\n"
+            "        sys.exit(0)\n"
+        )
+
         local_path = os.path.abspath(__file__)
 
         # Appliquer la mise à jour
@@ -117,9 +127,12 @@ def _auto_update(show_status=True):
                 add_log(f"Changelog : {changelog}", (200, 220, 255, 255))
             queue_status("Mise à jour appliquée, redémarrage…", (160, 230, 180, 255))
 
-        # Redémarrer
+        # Redémarrer de manière fiable (préférer le python du venv si disponible)
         time.sleep(1)  # Petit délai pour que l'utilisateur voie le message
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+        venv_python = os.path.join(os.path.dirname(local_path), ".venv", "Scripts", "python.exe")
+        python_exec = venv_python if os.path.isfile(venv_python) else sys.executable
+        subprocess.Popen([python_exec, local_path], cwd=os.path.dirname(local_path))
+        sys.exit(0)
 
     except Exception as e:
         if show_status:
@@ -129,13 +142,11 @@ def _auto_update(show_status=True):
 
 def _start_update_thread():
     """Lance la vérification de mise à jour en arrière-plan."""
-    # Désactivé temporairement pour éviter les problèmes de chemin
-    pass
-    # try:
-    #     t = threading.Thread(target=_auto_update, daemon=True)
-    #     t.start()
-    # except Exception:
-    #     pass
+    try:
+        t = threading.Thread(target=_auto_update, daemon=True)
+        t.start()
+    except Exception:
+        pass
 
 
 def cb_check_updates(sender, app_data):
