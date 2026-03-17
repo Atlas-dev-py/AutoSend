@@ -16,7 +16,7 @@ import urllib.request
 from datetime import datetime
 
 # Version actuelle du logiciel (mettez à jour manuellement)
-VERSION = "1.2.4"
+VERSION = "1.2.5"
 
 # URL brut où se trouve la dernière version du script.
 # Exemple : "https://raw.githubusercontent.com/<user>/<repo>/main/truckers_autosend.py"
@@ -155,13 +155,8 @@ def _auto_update(show_status=True):
                 add_log(f"Changelog : {changelog}", (200, 220, 255, 255))
             queue_status("Mise à jour appliquée, redémarrage…", (160, 230, 180, 255))
 
-        # Redémarrer de manière fiable (préférer le python du venv si disponible)
-        time.sleep(1)  # Petit délai pour que l'utilisateur voie le message
-        venv_python = os.path.join(os.path.dirname(local_path), ".venv", "Scripts", "python.exe")
-        python_exec = venv_python if os.path.isfile(venv_python) else sys.executable
-        subprocess.Popen([python_exec, local_path], cwd=os.path.dirname(local_path))
-        sys.exit(0)
-
+        queue_status("Mise à jour appliquée — redémarrage annulé (manuel requis).", (160, 230, 180, 255))
+        # Pas de redémarrage auto pour éviter les problèmes d'os.execv, l'utilisateur doit relancer manuellement après la mise à jour.
     except Exception as e:
         if show_status:
             queue_status("Échec de la mise à jour.", (220, 120, 120, 255))
